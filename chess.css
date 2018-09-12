@@ -1,0 +1,58 @@
+:root {
+    --board-size: 100vw;
+    --square-size: 12.50vw;
+}
+
+body {
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+}
+
+#board {
+    background-color: peru;
+    height: var(--board-size);
+    width: var(--board-size);
+
+    display: flex;
+    flex-wrap: wrap;
+
+    position: relative;
+
+    margin: auto;
+    padding: 0;
+}
+
+#board div {
+    box-shadow: inset 1px 1px white, inset -1px -1px white;
+    font-size: 3em;
+    height: var(--square-size);
+    width: var(--square-size);
+
+    align-items: center;
+    display: flex;
+    justify-content: center;
+
+    margin: 0;
+    padding: 0;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#banner {
+    background-color: rgba(255,255,255,0.5);
+    font-size: 5em;
+    height: 50%;
+    width: 100%;
+    text-align: center;
+
+    display: none;
+
+    position: absolute;
+    top: 25%;
+    left: 0;
+}

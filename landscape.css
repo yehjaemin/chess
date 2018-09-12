@@ -1,0 +1,6 @@
+@media screen and (orientation: landscape) {
+    :root {
+        --board-size: 100vh;
+        --square-size: 12.50vh;
+    }
+}
