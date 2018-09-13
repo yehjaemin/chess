@@ -84,6 +84,7 @@ function onClick(event) {
     const piece = getPiece(space);
     const side = getSide(space);
 
+    console.log(space.dataset.index);
     if ((selected === undefined || getSide(selected) === side) && isPiece(space) && turn === side) {
         selectPiece(space, piece, side);
     } else if (selected) {
@@ -201,16 +202,17 @@ function selectPiece(space, piece, side) {
         console.log('[right_black="' + right_black.toString() + '"]');
         */
 
-        if (two_white_square && !isPiece(two_white_square) && side === 'white' && row === 2) {
-            moves.push(two_white_square);
-        } else if (two_black_square && !isPiece(two_black_square) && side === 'black' && row === 7) {
-            moves.push(two_black_square);
-        }
-        // one forward
+        // one forward and two forward
         if (one_white_square && !isPiece(one_white_square) && side === 'white') {
             moves.push(one_white_square);
+            if (two_white_square && !isPiece(two_white_square) && side === 'white' && row === 2) {
+                moves.push(two_white_square);
+            }
         } else if (one_black_square && !isPiece(one_black_square) && side === 'black') {
             moves.push(one_black_square);
+            if (two_black_square && !isPiece(two_black_square) && side === 'black' && row === 7) {
+                moves.push(two_black_square);
+            }
         }
         // left diagonal
         if (left_white >= 0 && col !== 1 && getSide(left_white_square) === 'black' && side === 'white') {
@@ -300,19 +302,19 @@ function selectPiece(space, piece, side) {
         let up_right_tall_square = undefined;
         let down_right_tall_square = undefined;
 
-        if (index - 1 % 8 !== 0 && index - 2 % 8 !== 0) {
+        if ((index - 1) % 8 !== 0 && (index - 2) % 8 !== 0) {
             up_left_flat_square = document.querySelector('[data-index="' + up_left_flat.toString() + '"]');
             down_left_flat_square = document.querySelector('[data-index="' + down_left_flat.toString() + '"]');
         }
-        if (index - 1 % 8 !== 0) {
+        if ((index - 1) % 8 !== 0) {
             up_left_tall_square = document.querySelector('[data-index="' + up_left_tall.toString() + '"]');
             down_left_tall_square = document.querySelector('[data-index="' + down_left_tall.toString() + '"]');
         }
-        if (index + 1 % 8 !== 0 && index + 2 % 8 !== 0) {
+        if ((index + 1) % 8 !== 0 && index % 8 !== 0) {
             up_right_flat_square = document.querySelector('[data-index="' + up_right_flat.toString() + '"]');
             down_right_flat_square = document.querySelector('[data-index="' + down_right_flat.toString() + '"]');
         }
-        if (index + 1 % 8 !== 0) {
+        if (index % 8 !== 0) {
             up_right_tall_square = document.querySelector('[data-index="' + up_right_tall.toString() + '"]');
             down_right_tall_square = document.querySelector('[data-index="' + down_right_tall.toString() + '"]');
         }
