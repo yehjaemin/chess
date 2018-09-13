@@ -603,6 +603,7 @@ function setPiece(space, piece, side) {
     space.dataset.piece = piece;
     space.dataset.side = side;
     const image = document.createElement('img');
+    image.style.width = '100%';
 
     if (side === 'white') {
         if (piece === 'pawn') {
