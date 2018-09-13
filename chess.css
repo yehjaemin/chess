@@ -45,14 +45,23 @@ body {
 
 #banner {
     background-color: rgba(255,255,255,0.5);
-    font-size: 5em;
-    height: 50%;
-    width: 100%;
+    font-size: 3em;
     text-align: center;
 
-    display: none;
+    display: inline-block;
 
     position: absolute;
-    top: 25%;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    opacity: 0;
+    -webkit-transition: opacity 0.5s ease-in;
+    -moz-transition: opacity 0.5s ease-in;
+    -ms-transition: opacity 0.5s ease-in;
+    transition: opacity 0.5s ease-in;
+}
+
+#banner.show {
+    opacity: 1;
 }

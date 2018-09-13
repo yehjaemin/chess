@@ -17,7 +17,6 @@ let selected = undefined;   // selected piece
 let moves = [];             // moves for selected piece
 let white = [];             // white spaces
 let black = [];             // black spaces
-let danger = [];            // enemy spaces
 let turn = 'white';         // turn state
 let game = 'play';          // game state
 
@@ -84,15 +83,14 @@ function onClick(event) {
     const space = event.currentTarget;
     const piece = getPiece(space);
     const side = getSide(space);
-    if (selected === undefined && isPiece(space) && turn === side) {
+
+    if ((selected === undefined || getSide(selected) === side) && isPiece(space) && turn === side) {
         selectPiece(space, piece, side);
     } else if (selected) {
         if (space === selected) {
             selectPiece(space, piece, side);
         } else if (moves.indexOf(space) > -1) {
-            if (movePiece(space) === 'checkmate') {
-                endGame();
-            }
+            movePiece(space);
         }
     }
 }
@@ -105,15 +103,35 @@ function changeTurn() {
     }
 }
 
-function endGame() {
-    for (const square of squares) {
-        square.removeEventListener('click', onClick);
+function updateGame(state) {
+    const board = document.getElementById('board');
+    const banner = document.createElement('header');
+    banner.setAttribute('id', 'banner');
+    board.appendChild(banner);
+
+    if (state === 'check') {
+        const message = document.createTextNode('CHECK');
+        banner.appendChild(message);
+        banner.classList.add('show');
+        setTimeout(function() {
+            banner.classList.remove('show');
+            board.removeChild(banner);
+        }, 500);
+    } else if (state === 'checkmate') {
+        for (const square of squares) {
+            square.removeEventListener('click', onClick);
+        }
+        const message = document.createTextNode(turn.toUpperCase() + ' CHECKMATE');
+        banner.appendChild(message);
+        banner.classList.add('show');
+    } else if (state === 'stalemate') {
+        for (const square of squares) {
+            square.removeEventListener('click', onClick);
+        }
+        const message = document.createTextNode('STALEMATE');
+        banner.appendChild(message);
+        banner.classList.add('show');
     }
-    changeTurn();
-    const banner = document.getElementById('banner');
-    const message = document.createTextNode('WINNER: ' + turn.toUpperCase());
-    banner.appendChild(message);
-    banner.style.display = 'block';
 }
 
 function isPiece(space) {
@@ -573,7 +591,7 @@ function selectPiece(space, piece, side) {
     // highlight available moves
     if (space === selected) {
         for (const move of moves) {
-            move.style.backgroundImage = 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))';
+            move.style.backgroundImage = 'linear-gradient(rgba(240,255,255,0.5), rgba(240,255,255,0.5))';
         }
     }
     return moves;
@@ -635,100 +653,224 @@ function movePiece(space) {
     // move piece
     setPiece(space, 'none', 'none');
     setPiece(space, selected_piece, selected_side);
-    setPiece(selected, 'none', 'none');
+    setPiece(selected_temp, 'none', 'none');
 
     // update arrays
+    const update_index = updateSideArray(selected_temp, space, -1, selected_side);
+
+    // review move for a check on your king
+    // find dangerous areas
+    let danger = [];
     if (turn === 'white') {
-        white[white.indexOf(selected_temp)] = space;
+        danger = findDanger('black');
     } else if (turn === 'black') {
-        black[black.indexOf(selected_temp)] = space;
+        danger = findDanger('white');
     }
-
-    // review move
-    if (game === 'check') {
-        // check dangerous areas
-        for (const d of danger) {
-            if (getPiece(d) === 'king' && getSide(d) === turn) {
-                // undo move
-                setPiece(space, 'none', 'none');
-                setPiece(space, space_piece, space_side);
-                setPiece(selected_temp, selected_piece, selected_side);
-                // update arrays
-                if (turn === 'white') {
-                    white[white.indexOf(space)] = selected_temp;
-                } else if (turn === 'black') {
-                    black[black.indexOf(space)] = selected_temp;
-                }
-                return game;
-            }
+    // check dangerous areas
+    for (const d of danger) {
+        if (getPiece(d) === 'king' && getSide(d) === turn) {
+            // undo move
+            setPiece(space, 'none', 'none');
+            setPiece(space, space_piece, space_side);
+            setPiece(selected_temp, selected_piece, selected_side);
+            // update arrays
+            updateSideArray(space, selected_temp, update_index, selected_side);
+            updateGame('check');
+            return game;
         }
-
-        // lift check
-        danger = [];
-        game = 'play';
     }
+    // lift check
+    danger = [];
+    game = 'play';
 
-    // update game
-    selectPiece(space, selected_piece, selected_side);
-    selected = undefined;
-    for (const move of moves) {
-        if (getPiece(move) === 'king' && getSide(move) !== getSide(space)) {
-            // find dangerous areas
-            if (turn === 'black') {
-                for (const b of black) {
-                    danger = danger.concat(selectPiece(b, getPiece(b), getSide(b)));
-                }
-            } else if (turn === 'white') {
-                for (const w of white) {
-                    danger = danger.concat(selectPiece(w, getPiece(w), getSide(w)));
-                }
-            }
-            selected = undefined;
-
-            // check for checkmate
-            let king_moves = [];
-            let checkmate = true;
-            if (turn === 'black') {
-                for (const w of white) {
-                    if (getPiece(w) === 'king') {
-                        king_moves = selectPiece(w, getPiece(w), getSide(w));
-                    }
-                }
-            } else if (turn === 'white') {
-                for (const b of black) {
-                    if (getPiece(b) === 'king') {
-                        king_moves = selectPiece(b, getPiece(b), getSide(b));
-                    }
-                }
-            }
-            selected = undefined;
-
-            for (const king_move of king_moves) {
-                if (danger.indexOf(king_move) < 0) {
-                    checkmate = false;
-                }
-            }
-
-            if (checkmate) {
-                game = 'checkmate';
-                break;
-            }
-
-            // update game
+    // review move for a check on their king
+    // find dangerous areas
+    danger = findDanger(turn);
+    // check dangerous areas
+    for (const d of danger) {
+        if (getPiece(d) === 'king' && getSide(d) !== turn) {
             game = 'check';
-            break;
         }
     }
 
-    // reset moves
-    for (const move of moves) {
-        move.style.backgroundImage = '';
+    // review for checkmate/stalemate
+    let end = false;
+    // find defendable areas
+    let defense = [];
+    if (turn === 'white') {
+        defense = findDefense('black');
+    } else if (turn === 'black') {
+        defense = findDefense('white');
     }
-    moves = [];
+    // check all defensive moves
+    let end_string = '';
+    if (turn === 'white') {
+        end_string = checkDefense(defense, 'black');
+    } else if (turn === 'black') {
+        end_string = checkDefense(defense, 'white');
+    }
+    if (end_string === 'end') {
+        end = true;
+    }
+    console.log(end_string);
+
+    // checkmate/stalemate
+    if (end) {
+        if (game === 'check') {
+            game = 'checkmate';
+        } else if (game === 'play') {
+            game = 'stalemate';
+        }
+        updateGame(game);
+    }
+
+    // call updateGame
+    updateGame(game);
+
+    // reset selected
+    selected = undefined;
 
     // change turn
     changeTurn();
 
     // return game
     return game;
+}
+
+function updateSideArray(from, to, index, side) {
+    if (side === 'white') {
+        const b_index = black.indexOf(to);
+        white[white.indexOf(from)] = to;
+        if (b_index > -1)
+            black.splice(b_index, 1);
+        if (index > -1)
+            black.splice(index, 0, from);
+        return b_index;
+    } else if (side === 'black') {
+        const w_index = white.indexOf(to);
+        black[black.indexOf(from)] = to;
+        if (w_index > -1)
+            white.splice(w_index, 1);
+        if (index > -1)
+            white.splice(index, 0, from);
+        return w_index;
+    }
+}
+
+function findDanger(side) {
+    // find danger areas created by every piece in side
+    let danger = [];
+    if (side === 'black') {
+        for (const b of black) {
+            let b_danger = [];  // do NOT set b_danger = moves
+            b_danger = b_danger.concat(selectPiece(b, getPiece(b), getSide(b)));
+            selectPiece(b, getPiece(b), getSide(b));
+            if (getPiece(b) === 'pawn') {
+                const one_square = document.querySelector('[data-index="' + (b.dataset.index - 8).toString() + '"]');
+                const two_square = document.querySelector('[data-index="' + (b.dataset.index - 16).toString() + '"]');
+                const one_square_arr = b_danger.indexOf(one_square);
+                const two_square_arr = b_danger.indexOf(two_square);
+                if (one_square_arr > -1) {
+                    b_danger.splice(one_square_arr, 1);
+                }
+                if (two_square_arr > -1) {
+                    b_danger.splice(two_square_arr, 1);
+                }
+            }
+            danger = danger.concat(b_danger);
+        }
+    } else if (side === 'white') {
+        for (const w of white) {
+            let w_danger = [];  // do NOT set w_danger = moves
+            w_danger = w_danger.concat(selectPiece(w, getPiece(w), getSide(w)));
+            selectPiece(w, getPiece(w), getSide(w));
+            if (getPiece(w) === 'pawn') {
+                const one_square = document.querySelector('[data-index="' + (w.dataset.index + 8).toString() + '"]');
+                const two_square = document.querySelector('[data-index="' + (w.dataset.index + 16).toString() + '"]');
+                const one_square_arr = w_danger.indexOf(one_square);
+                const two_square_arr = w_danger.indexOf(two_square);
+                if (one_square_arr > -1) {
+                    w_danger.splice(one_square_arr, 1);
+                }
+                if (two_square_arr > -1) {
+                    w_danger.splice(two_square_arr, 1);
+                }
+            }
+            danger = danger.concat(w_danger);
+        }
+    }
+    // unselect irrelevant piece
+    selected = undefined;
+
+    return danger;
+}
+
+function findDefense(side) {
+    let defense = [];
+    if (side === 'black') {
+        for (const b of black) {
+            let b_defense = [];
+            b_defense = b_defense.concat(selectPiece(b, getPiece(b), getSide(b)));
+            selectPiece(b, getPiece(b), getSide(b));
+            defense.push(b_defense);    // defense[i] is the area defended by black[i]
+        }
+    } else if (side === 'white') {
+        for (const w of white) {
+            let w_defense = [];
+            w_defense = w_defense.concat(selectPiece(w, getPiece(w), getSide(w)));
+            selectPiece(w, getPiece(w), getSide(w));
+            defense.push(w_defense);    // defense[i] is the area defended by white[i]
+        }
+    }
+    return defense;
+}
+
+function checkDefense(defense, side) {
+    let arr = [];
+    if (side === 'white') {
+        arr = arr.concat(white);
+    } else if (side === 'black') {
+        arr = arr.concat(black);
+    }
+    for (let i=0; i < defense.length; i++) {
+        const arr_space = arr[i];
+        const arr_piece = getPiece(arr_space);
+        const arr_side = getSide(arr_space);
+        for (let j=0; j < defense[i].length; j++) {
+            const def_space = defense[i][j];
+            const def_piece = getPiece(def_space);
+            const def_side = getSide(def_space);
+            // propose defensive move
+            setPiece(def_space, 'none', 'none');
+            setPiece(def_space, arr_piece, arr_side);
+            setPiece(arr_space, 'none', 'none');
+            // propose arrays update
+            const array_index = updateSideArray(arr_space, def_space, -1, arr_side);
+            // find dangerous areas
+            let proposed_danger = [];
+            if (side === 'white') {
+                proposed_danger = findDanger('black');
+            } else if (side === 'black') {
+                proposed_danger = findDanger('white');
+            }
+            // check dangerous areas
+            let proposed_check = false;
+            for (const p of proposed_danger) {
+                if (getPiece(p) === 'king' && getSide(p) !== turn) {
+                    proposed_check = true;
+                }
+            }
+            // undo defensive move
+            setPiece(def_space, 'none', 'none');
+            setPiece(def_space, def_piece, def_side);
+            setPiece(arr_space, arr_piece, arr_side);
+            // undo arrays update
+            updateSideArray(def_space, arr_space, array_index, arr_side);
+            // return for broken check
+            if (proposed_check === false) {
+                return 'play';
+            }
+        }
+    }
+    return 'end';
 }
